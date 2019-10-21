@@ -146,6 +146,7 @@ fn parse_response<TResponse>((response, text): (reqwest::Response, String)) -> S
             },
             error: GatewayError::InvalidPayload {
                 error,
+                payload: text.to_owned(),
                 message: serde_json::from_str::<v1::Message>(&text).map(Message::V1),
             }
         })
@@ -287,7 +288,7 @@ mod tests {
             Ok (result) => assert_eq!(10, result.foo),
             Err (service_error) => {
                 match service_error.error {
-                    GatewayError::InvalidPayload { message, error } => assert!(false, "expected succful payload parse but was [{:?}] [{:?}]", message, error),
+                    GatewayError::InvalidPayload { message, payload, error } => assert!(false, "expected succful payload parse but was [{:?}] [{:?}] for [{:?}]", message, error, payload),
                     _ => assert!(false, "expected StatusCode relaetd error but was [{:?}]", service_error.error),
                 }
             },
