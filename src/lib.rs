@@ -129,6 +129,7 @@ fn validate_status((response, text): (reqwest::Response, String)) -> ServiceResu
                 error: None,
             },
             error: GatewayError::ResultFailed {
+                payload: text.to_owned(),
                 message: serde_json::from_str::<v1::Message>(&text).map(Message::V1),
             }
         })
