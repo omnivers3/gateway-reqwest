@@ -13,8 +13,7 @@ serde_json = "1.0"
 url = { git = "https://github.com/servo/rust-url" }
 
 [dependencies.gateway]
-path = "../gateway"
-# git = "https://github.com/omnivers3/gateway"
+git = "https://github.com/omnivers3/gateway"
 
 [dev-dependencies]
 env_logger = "0.7.1"
@@ -22,6 +21,5 @@ mockito = "0.21.0"
 serde_derive = "1.0"
 
 [dev-dependencies.gateway]
-# git = "https://github.com/omnivers3/gateway"
-path = "../gateway"
+git = "https://github.com/omnivers3/gateway"
 features = ["mockito-enabled"]
