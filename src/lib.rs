@@ -19,14 +19,6 @@ use std::fmt;
 
 use gateway::{ parse_url, Endpoint, Service, ServiceResult };
 
-
-#[derive(Debug, Default)]
-/// Captures reqwest metadata for diagnosing issues with calls
-pub struct ErrorContext {
-    response: Option<reqwest::Response>,
-    internal_error: Option<reqwest::Error>,
-}
-
 #[derive(Debug)]
 pub enum Error {
     /// An atttempt to append a path to the base url failed to parse
