@@ -1,0 +1,7 @@
+{
+    "search.exclude": {
+        "**/target": true
+    },
+    "lldb.verboseLogging": true,
+    "remote.containers.workspaceMountConsistency": "delegated"
+}

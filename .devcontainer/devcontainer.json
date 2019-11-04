@@ -1,0 +1,21 @@
+{
+	"name": "Omnivers3 - Gateway Reqwest",
+	"dockerFile": "Dockerfile",
+	// Uncomment the next line if you want to publish any ports.
+	// "appPort": [],
+	"extensions": [
+		"rust-lang.rust",
+		"bungcip.better-toml"
+	],
+	"runArgs": [
+		"-v", "gateway-reqwest-target:/workspace/target",
+		"--cap-add=SYS_PTRACE",
+		"--security-opt",
+		"seccomp=unconfined"
+	],
+	"settings": {
+		"terminal.integrated.shell.linux": "/bin/bash"
+	},
+	"workspaceMount": "src=${localWorkspaceFolder},dst=/workspace,type=bind,consistency=cached",
+	"workspaceFolder": "/workspace"
+}
