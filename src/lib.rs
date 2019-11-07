@@ -32,6 +32,18 @@ pub enum Error {
     },
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            Error::AppendPathFailed(_err) => write!(f, "Internal Server Error - Invalid Path"),
+            Error::RequestFailed(err) => write!(f, "{}", err),
+            Error::ReadBodyFailed(err) => write!(f, "{}", err),
+            Error::ResultFailed { payload } => write!(f, "Internal Server Error [{}]", payload),
+            Error::InvalidPayload { serde_error, payload } => write!(f, "Failed to parse response [{}] because [{}]", payload, serde_error),
+        }
+    }
+}
+
 /// Service implementation using Reqwest for proxying to the backing api(s)
 pub struct ReqwestJsonService {
     url: url::Url,
