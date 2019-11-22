@@ -101,12 +101,16 @@ where
     TError: serde::de::DeserializeOwned + fmt::Debug,
 {
     if status.eq(&200) {
+        // Request was successful with an OK 200 response
         Ok(text)
     } else {
+        println!("Parse text: [{:?}]", text);
         Err((
+            // Capture the context of the result body
             Error::ResultFailed {
                 payload: text.to_owned(),
             },
+            // Try to parse the failed result body into an expected error
             Some(serde_json::from_str::<TError>(&text)),
         ))
     }
@@ -119,15 +123,19 @@ where
     TResponse: serde::de::DeserializeOwned + std::fmt::Debug,
     TError: serde::de::DeserializeOwned + std::fmt::Debug,
 {
-    serde_json::from_str::<TResponse>(&text).map_err(|serde_error| {
-        (
-            Error::InvalidPayload {
-                serde_error,
-                payload: text.to_owned(),
-            },
-            Some(serde_json::from_str::<TError>(&text)),
-        )
-    })
+    // Extracted body from a successful response, try to deserialize it
+    serde_json::from_str::<TResponse>(&text)
+        .map_err(|serde_error| {
+            (
+                // Capture the context of the issue deserializing and the result body
+                Error::InvalidPayload {
+                    serde_error,
+                    payload: text.to_owned(),
+                },
+                // Try to parse the failed result body into an expected error
+                Some(serde_json::from_str::<TError>(&text)),
+            )
+        })
 }
 
 impl Service for ReqwestJsonService {
@@ -159,12 +167,19 @@ impl Service for ReqwestJsonService {
             }
             Err(err) => Err((err, None)),
         };
+        println!("RESULT: {:?}", result);
         match result {
+            // Response completed successfully!
             Ok(resp) => ServiceResult::Ok(resp),
+            // First position represents server level error
             Err((svc_err, None)) => ServiceResult::Fail(svc_err, None),
-            Err((svc_err, Some(err_result))) => match err_result {
-                Ok(err) => ServiceResult::Err(svc_err, err),
-                Err(serde_err) => ServiceResult::Fail(svc_err, Some(serde_err)),
+            // Second position is potential errors from processing the result
+            Err((svc_err, Some(err_result))) => {
+                println!("\nSVC ERR [{:?}] and\nerr_result [{:?}]", svc_err, err_result);
+                match err_result {
+                    Ok(err) => ServiceResult::Err(svc_err, err),
+                    Err(serde_err) => ServiceResult::Fail(svc_err, Some(serde_err)),
+                }
             },
         }
     }
@@ -206,13 +221,13 @@ mod tests {
     fn fail_ctor_with_empty_url() {
         init();
         match ReqwestJsonService::with_url("") {
-            Ok(svc) => assert!(false, "should have failed empty url but was [{:?}]", svc),
+            Ok(svc) => panic!("should have failed empty url but was [{:?}]", svc),
             Err(error) => match error {
                 gateway::Error::UrlParseFailed(inner) => {
                     let err = format!("{:?}", inner);
                     assert_eq!("RelativeUrlWithoutBase", err);
                 }
-                _ => assert!(false, "expected UrlParseFailed but was [{:?}]", error),
+                _ => panic!("expected UrlParseFailed but was [{:?}]", error),
             },
         }
     }
@@ -229,21 +244,12 @@ mod tests {
         let svc = ReqwestJsonService::with_url("http://www.foo.net/return_error_for_404").unwrap();
 
         match svc.exec(Unit {}) {
-            ServiceResult::Ok(result) => assert!(
-                false,
-                "should have detected invalid status but was [{:?}]",
-                result
-            ),
+            ServiceResult::Ok(result) => panic!("should have detected invalid status but was [{:?}]", result),
             ServiceResult::Err(service_error, _api_error) => match service_error {
                 Error::ResultFailed { .. } => {}
-                _ => assert!(
-                    false,
-                    "expected ResultFailed relaetd error but was [{:?}]",
-                    service_error
-                ),
+                _ => panic!("expected ResultFailed relaetd error but was [{:?}]", service_error),
             },
-            ServiceResult::Fail(service_error, maybe_api_serde) => assert!(
-                false,
+            ServiceResult::Fail(service_error, maybe_api_serde) => panic!(
                 "should have had an api error [{:?}] to parse but was [{:?}]",
                 service_error, maybe_api_serde
             ),
@@ -262,24 +268,12 @@ mod tests {
         let svc = ReqwestJsonService::with_url("http://www.foo.net/return_error_for_404").unwrap();
 
         match svc.exec(Unit {}) {
-            ServiceResult::Ok(result) => assert!(
-                false,
-                "should have detected invalid status but was [{:?}]",
-                result
-            ),
-            ServiceResult::Err(_service_error, api_error) => assert!(
-                false,
-                "should not have had an api error to parse but was [{:?}]",
-                api_error
-            ),
+            ServiceResult::Ok(result) => panic!("should have detected invalid status but was [{:?}]", result),
+            ServiceResult::Err(_service_error, api_error) => panic!("should not have had an api error to parse but was [{:?}]", api_error),
             ServiceResult::Fail(service_error, maybe_api_serde) => {
                 match service_error {
                     Error::ResultFailed { .. } => {}
-                    _ => assert!(
-                        false,
-                        "expected ResultFailed relaetd error but was [{:?}]",
-                        service_error
-                    ),
+                    _ => panic!("expected ResultFailed relaetd error but was [{:?}]", service_error),
                 }
                 assert!(
                     maybe_api_serde.is_some(),
@@ -302,24 +296,12 @@ mod tests {
         let svc = ReqwestJsonService::with_url("http://www.foo.net/return_error_for_500").unwrap();
 
         match svc.exec(Unit {}) {
-            ServiceResult::Ok(result) => assert!(
-                false,
-                "should have detected invalid status but was [{:?}]",
-                result
-            ),
-            ServiceResult::Err(_service_error, api_error) => assert!(
-                false,
-                "should not have had an api error to parse but was [{:?}]",
-                api_error
-            ),
+            ServiceResult::Ok(result) => panic!("should have detected invalid status but was [{:?}]", result),
+            ServiceResult::Err(_service_error, api_error) => panic!("should not have had an api error to parse but was [{:?}]",api_error),
             ServiceResult::Fail(service_error, maybe_api_serde) => {
                 match service_error {
                     Error::ResultFailed { .. } => {}
-                    _ => assert!(
-                        false,
-                        "expected ResultFailed relaetd error but was [{:?}]",
-                        service_error
-                    ),
+                    _ => panic!("expected ResultFailed relaetd error but was [{:?}]", service_error),
                 }
                 assert!(
                     maybe_api_serde.is_some(),
@@ -345,20 +327,12 @@ mod tests {
                 .unwrap();
 
         match svc.exec(Unit {}) {
-            ServiceResult::Ok(result) => assert!(
-                false,
-                "should have been valid status with invalid payload and was [{:?}]",
-                result
-            ),
-            ServiceResult::Err(_service_error, api_error) => assert!(
-                false,
-                "should not have had an api error to parse but was [{:?}]",
-                api_error
-            ),
+            ServiceResult::Ok(result) => panic!("should have been valid status with invalid payload and was [{:?}]", result),
+            ServiceResult::Err(_service_error, api_error) => panic!("should not have had an api error to parse but was [{:?}]", api_error),
             ServiceResult::Fail(service_error, maybe_api_serde) => {
                 match service_error {
                     Error::InvalidPayload { .. } => {},
-                    _ => assert!(false, "expected InvalidPayload relaetd error but was [{:?}] with error serde [{:?}]", service_error, maybe_api_serde),
+                    _ => panic!("expected InvalidPayload relaetd error but was [{:?}] with error serde [{:?}]", service_error, maybe_api_serde),
                 }
                 assert!(
                     maybe_api_serde.is_some(),
@@ -385,8 +359,8 @@ mod tests {
 
         match svc.exec(Unit {}) {
             ServiceResult::Ok (_) => {},
-            ServiceResult::Err (service_error, api_error) => assert!(false, "should not have failed with [{:?}] or had an api error to parse but was [{:?}]", service_error, api_error),
-            ServiceResult::Fail (service_error, maybe_api_serde) => assert!(false, "should not have failed with [{:?}] or had an api error to parse but failed with [{:?}]", service_error, maybe_api_serde),
+            ServiceResult::Err (service_error, api_error) => panic!("should not have failed with [{:?}] or had an api error to parse but was [{:?}]", service_error, api_error),
+            ServiceResult::Fail (service_error, maybe_api_serde) => panic!("should not have failed with [{:?}] or had an api error to parse but failed with [{:?}]", service_error, maybe_api_serde),
         }
         mock.assert();
     }
@@ -426,8 +400,8 @@ mod tests {
 
         match svc.exec(TempRequest {}) {
             ServiceResult::Ok (result) => assert_eq!(10, result.foo),
-            ServiceResult::Err (service_error, api_error) => assert!(false, "should not have failed with [{:?}] or had an api error to parse but was [{:?}]", service_error, api_error),
-            ServiceResult::Fail (service_error, maybe_api_serde) => assert!(false, "should not have failed with [{:?}] or had an api error to parse but failed with [{:?}]", service_error, maybe_api_serde),
+            ServiceResult::Err (service_error, api_error) => panic!("should not have failed with [{:?}] or had an api error to parse but was [{:?}]", service_error, api_error),
+            ServiceResult::Fail (service_error, maybe_api_serde) => panic!("should not have failed with [{:?}] or had an api error to parse but failed with [{:?}]", service_error, maybe_api_serde),
         }
         mock.assert();
     }
